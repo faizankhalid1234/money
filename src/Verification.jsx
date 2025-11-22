@@ -6,8 +6,6 @@ export default function Verification() {
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    
-    // FIRST, read status and message from URL
     let backendStatus = url.searchParams.get("status")?.toLowerCase();
     let backendMessage = url.searchParams.get("message") || "No message returned";
 
@@ -20,14 +18,21 @@ export default function Verification() {
     if (["approved", "success"].includes(backendStatus)) backendStatus = "success";
     if (["declined", "failed"].includes(backendStatus)) backendStatus = "failed";
 
-    setStatus(backendStatus);
-    setMessage(backendMessage);
-
+    // Add small delay to show loader
+    setTimeout(() => {
+      setStatus(backendStatus);
+      setMessage(backendMessage);
+    }, 1000); // 1 second delay for loader animation
   }, []);
 
   return (
     <div style={{ textAlign: "center", marginTop: "130px", fontFamily: "Arial" }}>
-      {status === "loading" && <h2>Verifying Payment...</h2>}
+      {status === "loading" && (
+        <>
+          <div className="loader"></div>
+          <h2>Verifying Payment...</h2>
+        </>
+      )}
 
       {status === "success" && (
         <div style={{ color: "green" }}>
@@ -42,6 +47,23 @@ export default function Verification() {
           <p>{message}</p>
         </div>
       )}
+
+      <style>{`
+        .loader {
+          border: 6px solid #ddd;
+          border-top: 6px solid #4a90e2;
+          border-radius: 50%;
+          width: 70px;
+          height: 70px;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
