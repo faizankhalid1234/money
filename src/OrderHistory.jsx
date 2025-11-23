@@ -9,6 +9,7 @@ export default function OrderHistory() {
     { reference: "TXN-1002", amount: "75 USD", status: "Failed" },
     { reference: "TXN-1003", amount: "120 USD", status: "Success" },
     { reference: "TXN-1003", amount: "120 USD", status: "pending" },
+     { reference: "TXN-1003", amount: "120 USD", status: "failed" },
   ];
 
   return (
