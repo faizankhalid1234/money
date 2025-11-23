@@ -5,7 +5,7 @@ import Swal from "sweetalert2";
 export default function App() {
   // ------------------ Dynamic callback URL ------------------
   const callbackUrl =
-       `${window.location.origin}/verify`
+       `${window.location.origin}/checkpayment`
   console.log("Callback URL:", callbackUrl); // ✅ See in console
 
   // ------------------ Form state ------------------

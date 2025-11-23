@@ -17,7 +17,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/payment" element={<App />} />
 
         {/* VERIFICATION PAGE */}
-        <Route path="/verify" element={<Verification />} />
+        <Route path="/checkpayment" element={<Verification />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
