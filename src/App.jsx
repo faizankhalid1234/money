@@ -5,10 +5,7 @@ import Swal from "sweetalert2";
 export default function App() {
   // ------------------ Dynamic callback URL ------------------
   const callbackUrl =
-    process.env.NODE_ENV === "production"
-      ? "https://your-frontend-domain.com/verify"
-      : `${window.location.origin}/verify`;
-
+       `${window.location.origin}/verify`
   console.log("Callback URL:", callbackUrl); // ✅ See in console
 
   // ------------------ Form state ------------------

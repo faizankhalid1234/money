@@ -6,23 +6,27 @@ export default function Verification() {
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    let backendStatus = url.searchParams.get("status")?.toLowerCase();
-    let backendMessage = url.searchParams.get("message") || "No message returned";
 
-    if (!backendStatus || !["approved", "declined", "success", "failed"].includes(backendStatus)) {
-      backendStatus = "failed";
-      backendMessage = "Invalid or missing status from backend";
+    // Get backend-provided status & message
+    const backendStatusRaw = url.searchParams.get("status"); // e.g., "approved" or "failed"
+    const backendMessage = url.searchParams.get("message") || "No message returned";
+
+    if (!backendStatusRaw) {
+      setStatus("failed");
+      setMessage("Missing status from backend");
+      return;
     }
 
-    // Normalize status
-    if (["approved", "success"].includes(backendStatus)) backendStatus = "success";
-    if (["declined", "failed"].includes(backendStatus)) backendStatus = "failed";
+    // Only normalize for UI coloring
+    const backendStatus = ["approved", "success"].includes(backendStatusRaw.toLowerCase())
+      ? "success"
+      : ["failed", "declined"].includes(backendStatusRaw.toLowerCase())
+      ? "failed"
+      : "failed";
 
-    // Add small delay to show loader
-    setTimeout(() => {
-      setStatus(backendStatus);
-      setMessage(backendMessage);
-    }, 1000); // 1 second delay for loader animation
+    setStatus(backendStatus);
+    setMessage(backendMessage);
+
   }, []);
 
   return (
@@ -58,11 +62,7 @@ export default function Verification() {
           animation: spin 1s linear infinite;
           margin: 0 auto 20px;
         }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
