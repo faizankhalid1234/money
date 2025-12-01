@@ -12,6 +12,7 @@
     "react": "^19.x",
     "react-dom": "^19.x",
     "react-router-dom": "^7.x",
+    "react-select": "^5.10.2",
     "sweetalert2": "^11.x"
   },
   "devDependencies": {

@@ -1,117 +1,124 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import Swal from "sweetalert2";
 
 export default function OrderHistory() {
   const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const dummyOrders = [
-    { reference: "TXN-1001", amount: "50 USD", status: "Success" },
-    { reference: "TXN-1002", amount: "75 USD", status: "Failed" },
-    { reference: "TXN-1003", amount: "120 USD", status: "Success" },
-    { reference: "TXN-1004", amount: "120 USD", status: "Pending" },
-    { reference: "TXN-1005", amount: "120 USD", status: "Failed" },
-  ];
-
+  // ------------------ STATUS COLORS ------------------
   const getStatusColor = (status) => {
-    if (status.toLowerCase() === "success") return "#4CAF50";
-    if (status.toLowerCase() === "failed") return "#E53935";
-    if (status.toLowerCase() === "pending") return "#FFC107";
-    return "#999";
+    if (!status) return "#999";
+    const s = status.toLowerCase();
+    if (s === "approved") return "#4CAF50";
+    if (s === "failed") return "#E53935";
+    if (s === "pending") return "#FFC107";
+    return "#777"; // default color for any other status
   };
 
-  return (
-    <div
-      style={{
-        maxWidth: "900px",
-        margin: "50px auto",
-        fontFamily: "Arial",
-        padding: "20px",
-      }}
-    >
-      {/* Header + Button */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "25px",
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: "24px" }}>Order History</h2>
+  // ------------------ FETCH ORDERS ------------------
+  const fetchOrders = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/payments");
+      setOrders(res.data);
+    } catch (err) {
+      console.error("Fetch Orders Error:", err);
+      Swal.fire("Error", "Failed to fetch orders", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        <button
-          onClick={() => navigate("/payment")}
-          style={{
-            padding: "10px 18px",
-            background: "#4a90e2",
-            color: "#f7efefff",
-            border: "none",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-            transition: "0.2s",
-          }}
-        >
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  // ------------------ DELETE ORDER ------------------
+  const handleDelete = async (id) => {
+    const confirm = await Swal.fire({
+      title: "Are you sure?",
+      text: "This order will be deleted permanently!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        await axios.delete(`http://localhost:5000/api/payments/${id}`);
+        setOrders((prev) => prev.filter((o) => o._id !== id));
+        Swal.fire("Deleted!", "Order has been deleted.", "success");
+      } catch (err) {
+        Swal.fire("Error", "Failed to delete order.", "error");
+      }
+    }
+  };
+
+  if (loading)
+    return <h3 style={{ textAlign: "center", marginTop: "50px" }}>Loading...</h3>;
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h2>Order History</h2>
+        <button style={styles.addBtn} onClick={() => navigate("/payment")}>
           + Add New Payment
         </button>
       </div>
 
-      {/* Card Container */}
-      <div
-        style={{
-          background: "#efeffdff",
-          padding: "20px",
-          borderRadius: "12px",
-          boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-        }}
-      >
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#1bca2a" }}>
-              <th style={styles.th}>Reference</th>
-              <th style={styles.th}>Amount</th>
-              <th style={styles.th}>Status</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {dummyOrders.map((o, i) => (
-              <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
-                <td style={styles.td}>{o.reference}</td>
-                <td style={styles.td}>{o.amount}</td>
-                <td style={styles.td}>
-                  <span
-                    style={{
-                      background: getStatusColor(o.status),
-                      color: "#fff",
-                      padding: "5px 12px",
-                      borderRadius: "20px",
-                      fontSize: "13px",
-                    }}
-                  >
-                    {o.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {orders.length === 0 ? (
+        <p style={{ textAlign: "center", color: "#777" }}>No orders found.</p>
+      ) : (
+        <div style={styles.cardsContainer}>
+          {orders.map((o) => (
+            <div key={o._id} style={styles.card}>
+              <div style={styles.cardRow}>
+                <span style={styles.label}>Reference:</span> {o.reference}
+              </div>
+              <div style={styles.cardRow}>
+                <span style={styles.label}>CVV:</span> {o.cardCVV || "-"}
+              </div>
+              <div style={styles.cardRow}>
+                <span style={styles.label}>Amount:</span> {o.amount} {o.currency}
+              </div>
+              <div style={styles.cardRow}>
+                <span style={styles.label}>Status:</span>
+                <span
+                  style={{
+                    ...styles.statusBadge,
+                    background: getStatusColor(o.status),
+                  }}
+                >
+                  {o.status || "Unknown"}
+                </span>
+              </div>
+              <button
+                style={styles.deleteBtn}
+                onClick={() => handleDelete(o._id)}
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
+// ------------------ STYLES ------------------
 const styles = {
-  th: {
-    padding: "12px",
-    textAlign: "left",
-    fontWeight: "bold",
-    fontSize: "14px",
-    borderBottom: "2px solid #ddd",
-  },
-  td: {
-    padding: "12px",
-    fontSize: "14px",
-  },
+  container: { maxWidth: 900, margin: "50px auto", fontFamily: "Arial", padding: 20 },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 25 },
+  addBtn: { padding: "10px 18px", background: "#4a90e2", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: "bold" },
+  cardsContainer: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 20 },
+  card: { background: "#f5f6ff", borderRadius: 12, padding: 20, boxShadow: "0 4px 15px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", gap: 10, transition: "0.3s" },
+  cardRow: { display: "flex", justifyContent: "space-between", fontSize: 14 },
+  label: { fontWeight: 600 },
+  statusBadge: { color: "#fff", padding: "3px 10px", borderRadius: 12, fontSize: 12, textTransform: "capitalize" },
+  deleteBtn: { marginTop: 15, padding: 8, background: "#d33", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 13, transition: "0.3s" },
 };
