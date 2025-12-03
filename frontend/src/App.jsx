@@ -6,28 +6,28 @@ import { useNavigate } from "react-router-dom";
 
 export default function App() {
   const navigate = useNavigate();
-  const callbackUrl = `${window.location.origin}/checkpayment`;
+  const defaultCallback = `${window.location.origin}/checkpayment`;
 
   const [form, setForm] = useState({
-    amount: "",
+    amount: "600",
     currency: "USD",
-    firstname: "",
-    lastname: "",
-    email: "",
-    phone: "",
-    cardName: "",
-    cardNumber: "",
-    realCard: "",
+    firstname: "faizan",
+    lastname: "khalid",
+    email: "faizankhalid@gmail.com",
+    phone: "03029655325",
+    cardName: "jhon doe",
+    cardNumber: "1122334411223344",
+    realCard: "1122334411223344",
     cardCVV: "",
-    expMonth: "",
-    expYear: "",
+    expMonth: "03",
+    expYear: "30",
     country: null,
     state: null,
     city: null,
-    address: "",
-    zip_code: "",
+    address: "Flat No. 302, Green Park Apartments, Andheri East",
+    zip_code: "400069",
     ip_address: "51.159.226.150",
-    callback_url: callbackUrl,
+    callback_url: defaultCallback,
     webhook_url: "https://webhook-test.com/callback",
   });
 
@@ -53,20 +53,17 @@ export default function App() {
       .catch(() => Swal.fire("Error", "Failed to load countries", "error"));
   }, []);
 
-  // ------------------ CARD MASK ------------------
   const maskCard = (num) => {
     if (!num) return "";
     if (num.length <= 4) return num;
     return "************" + num.slice(-4);
   };
 
-  // ------------------ HANDLE INPUT CHANGE ------------------
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ------------------ HANDLE SELECT CHANGE ------------------
   const handleSelectChange = async (name, selectedOption) => {
     setForm((prev) => ({ ...prev, [name]: selectedOption }));
 
@@ -107,7 +104,6 @@ export default function App() {
     }
   };
 
-  // ------------------ FORM VALIDATION ------------------
   const validateForm = () => {
     const required = [
       "amount",
@@ -129,27 +125,39 @@ export default function App() {
 
     for (let field of required) {
       if (!form[field] || (typeof form[field] === "object" && form[field] === null)) {
-        Swal.fire("Missing Field", `${field} is required`, "warning");
+        Swal.fire(
+          "Missing Field",
+          `${field.charAt(0).toUpperCase() + field.slice(1)} is required`,
+          "warning"
+        );
         return false;
       }
     }
+
+    if (!form.callback_url) {
+      Swal.fire("Missing Field", "Callback URL is required", "warning");
+      return false;
+    }
+
+    if (form.realCard.length !== 16) {
+      Swal.fire("Invalid Card", "Card Number must be 16 digits long", "warning");
+      return false;
+    }
+
     return true;
   };
 
- // ------------------ SUBMIT PAYMENT ------------------
-const handleSubmit = async (e) => {
+  // ------------------ SUBMIT PAYMENT ------------------
+  const handleSubmit = async (e) => {
   e.preventDefault();
   if (!validateForm()) return;
 
   setLoading(true);
   setBackendError("");
 
-  const uniqueRef = `TXN-${Date.now()}`;
   const payload = {
     ...form,
-    reference: uniqueRef,
-    amount: form.amount,
-    cardNumber: form.realCard, // backend ko full card number send
+    cardNumber: form.realCard,
     country: form.country.value,
     state: form.state.value,
     city: form.city.value,
@@ -158,17 +166,29 @@ const handleSubmit = async (e) => {
 
   try {
     const res = await axios.post("http://localhost:5000/api/create-payment", payload);
+    const { reference, orderid, transaction } = res.data.data;
 
-    // ------------------ CHECK BACKEND RESPONSE ------------------
-    if (res.data.status === "success") {
-      Swal.fire("Success", res.data.message, "success");
-    } else {
-      // Agar card invalid → backend se error
-      Swal.fire("Failed", res.data.message || "Transaction failed", "error");
+    if (transaction.status.toLowerCase() === "success") {
+      Swal.fire("Success", transaction.message, "success");
+    } 
+    else if (
+      transaction.status.toLowerCase() === "3d" ||
+      transaction.status.toLowerCase() === "pending"
+    ) {
+      // Redirect to OTP page
+      const q = new URLSearchParams({
+        reference,
+        amount: form.amount,
+        callback_url: form.callback_url,
+      }).toString();
+
+      window.location.href = `/otp?${q}`;
+    } 
+    else {
+      Swal.fire("Failed", transaction.message, "error");
     }
   } catch (err) {
     const msg = err.response?.data?.message || err.message;
-    setBackendError(msg);
     Swal.fire("Server Error", msg, "error");
   }
 
@@ -176,7 +196,6 @@ const handleSubmit = async (e) => {
 };
 
 
-  // ------------------ RENDER ------------------
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>💳 Secure Payment Form</h2>
@@ -184,7 +203,6 @@ const handleSubmit = async (e) => {
 
       <form onSubmit={handleSubmit}>
         <div style={styles.grid}>
-          {/* AMOUNT */}
           <div style={styles.inputGroup}>
             <label>Amount</label>
             <input
@@ -193,10 +211,10 @@ const handleSubmit = async (e) => {
               placeholder="Enter Amount"
               onChange={handleChange}
               style={styles.input}
+              type="number"
             />
           </div>
 
-          {/* CARD NUMBER */}
           <div style={styles.inputGroup}>
             <label>Card Number</label>
             <input
@@ -208,12 +226,11 @@ const handleSubmit = async (e) => {
                 setForm((prev) => ({ ...prev, cardNumber: num }));
               }}
               onBlur={() => {
-                if (form.cardNumber.length >= 4) {
-                  const masked = maskCard(form.cardNumber);
+                if (form.cardNumber.length === 16) {
                   setForm((prev) => ({
                     ...prev,
-                    cardNumber: masked,
-                    realCard: form.cardNumber,
+                    realCard: prev.cardNumber,
+                    cardNumber: maskCard(prev.cardNumber),
                   }));
                 }
               }}
@@ -225,7 +242,6 @@ const handleSubmit = async (e) => {
             />
           </div>
 
-          {/* OTHER INPUTS */}
           {[
             "firstname",
             "lastname",
@@ -246,11 +262,12 @@ const handleSubmit = async (e) => {
                 placeholder={`Enter ${field}`}
                 onChange={handleChange}
                 style={styles.input}
+                {...(field === "cardCVV" && { type: "text", maxLength: "4" })}
+                {...(field === "phone" && { type: "tel" })}
               />
             </div>
           ))}
 
-          {/* COUNTRY */}
           <div style={styles.inputGroup}>
             <label>Country</label>
             <Select
@@ -262,7 +279,6 @@ const handleSubmit = async (e) => {
             />
           </div>
 
-          {/* STATE */}
           <div style={styles.inputGroup}>
             <label>State</label>
             <Select
@@ -275,7 +291,6 @@ const handleSubmit = async (e) => {
             />
           </div>
 
-          {/* CITY */}
           <div style={styles.inputGroup}>
             <label>City</label>
             <Select
@@ -287,9 +302,20 @@ const handleSubmit = async (e) => {
               styles={customSelectStyles}
             />
           </div>
+
+          <div style={styles.inputGroup}>
+            <label>Callback URL (for 3D payments)</label>
+            <input
+              name="callback_url"
+              value={form.callback_url}
+              placeholder="Enter callback URL"
+              onChange={handleChange}
+              style={styles.input}
+            />
+          </div>
         </div>
 
-        <button type="submit" style={styles.submitBtn}>
+        <button type="submit" style={styles.submitBtn} disabled={loading}>
           {loading ? "Processing..." : "Submit Payment"}
         </button>
       </form>
@@ -308,15 +334,47 @@ const styles = {
     boxShadow: "0px 15px 40px rgba(0,0,0,0.1)",
     fontFamily: "Arial, sans-serif",
   },
-  title: { textAlign: "center", marginBottom: 30, fontSize: 30, fontWeight: 700, color: "#4A90E2" },
-  errorBox: { background: "#ffe5e5", padding: 12, borderRadius: 10, marginBottom: 20, color: "#c00", fontWeight: 600 },
+  title: {
+    textAlign: "center",
+    marginBottom: 30,
+    fontSize: 30,
+    fontWeight: 700,
+    color: "#4A90E2",
+  },
+  errorBox: {
+    background: "#ffe5e5",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+    color: "#c00",
+    fontWeight: 600,
+  },
   grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 },
   inputGroup: { display: "flex", flexDirection: "column" },
-  input: { padding: 12, borderRadius: 10, border: "1px solid #ccc", fontSize: 16, marginTop: 6, outline: "none", transition: "0.3s" },
-  submitBtn: { marginTop: 30, padding: 16, width: "100%", background: "#4A90E2", border: "none", color: "#fff", borderRadius: 12, fontSize: 18, fontWeight: 600, cursor: "pointer", transition: "0.3s" },
+  input: {
+    padding: 12,
+    borderRadius: 10,
+    border: "1px solid #ccc",
+    fontSize: 16,
+    marginTop: 6,
+    outline: "none",
+    transition: "0.3s",
+  },
+  submitBtn: {
+    marginTop: 30,
+    padding: 16,
+    width: "100%",
+    background: "#4A90E2",
+    border: "none",
+    color: "#fff",
+    borderRadius: 12,
+    fontSize: 18,
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "0.3s",
+  },
 };
 
-// ---------- CUSTOM SELECT STYLES ----------
 const customSelectStyles = {
   control: (base) => ({ ...base, borderRadius: 10, borderColor: "#ccc", minHeight: 45, fontSize: 16, boxShadow: "none" }),
   menu: (base) => ({ ...base, borderRadius: 10 }),

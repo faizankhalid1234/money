@@ -1,24 +1,45 @@
+// OtpPage.jsx
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 
 export default function OtpPage() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
+  // ------------------ QUERY PARAMS FROM URL ------------------
   const reference = searchParams.get("reference");
-  const amount = searchParams.get("amount") || "0";
+
+  const [amount, setAmount] = useState(null); // amount hidden
+  const [callbackUrl, setCallbackUrl] = useState("");
 
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(900); // 15 minutes countdown
 
-  // ------------------ COUNTDOWN ------------------
+  // ------------------ FETCH ORDER DETAIL ------------------
+  useEffect(() => {
+    if (!reference) return;
+
+    axios
+      .get(`http://localhost:5000/api/order/${reference}`)
+      .then((res) => {
+        if (res.data.status === "success") {
+          setAmount(res.data.data.amount);
+          setCallbackUrl(res.data.data.callback_url);
+        } else {
+          Swal.fire("Error", "Order not found", "error");
+        }
+      })
+      .catch(() => Swal.fire("Error", "Failed to fetch order", "error"));
+  }, [reference]);
+
+  // ------------------ COUNTDOWN TIMER ------------------
   useEffect(() => {
     const countdown = setInterval(() => {
       setTimer((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
+
     return () => clearInterval(countdown);
   }, []);
 
@@ -28,7 +49,22 @@ export default function OtpPage() {
     return `${m}:${s < 10 ? "0" + s : s}`;
   };
 
-  // ------------------ SUBMIT OTP ------------------
+  // ------------------ REDIRECT TO CALLBACK ------------------
+  const redirectToCallback = (status) => {
+    if (!callbackUrl) return;
+
+    let cb = callbackUrl;
+    if (cb.startsWith("/")) cb = window.location.origin + cb;
+
+    const url = new URL(cb);
+    url.searchParams.set("reference", reference);
+    url.searchParams.set("amount", amount);
+    url.searchParams.set("status", status);
+
+    window.location.href = url.toString();
+  };
+
+  // ------------------ OTP SUBMIT ------------------
   const handleSubmit = async () => {
     if (!otp) {
       Swal.fire({ icon: "warning", text: "Please enter OTP" });
@@ -43,7 +79,7 @@ export default function OtpPage() {
         otp,
       });
 
-      const finalStatus = res.data.status; // "approved" or "failed"
+      const finalStatus = res.data.status; // approved / failed
       const message = res.data.message || "";
 
       if (finalStatus === "approved") {
@@ -53,24 +89,18 @@ export default function OtpPage() {
           text: message,
           timer: 1500,
           showConfirmButton: false,
-        });
-      } else if (finalStatus === "failed") {
+        }).then(() => redirectToCallback("approved"));
+      } else {
         Swal.fire({
           icon: "error",
           title: "Payment Failed",
           text: message,
           timer: 1500,
           showConfirmButton: false,
-        });
+        }).then(() => redirectToCallback("failed"));
       }
-
-      // Redirect to verification / callback page with final status
-      setTimeout(() => {
-        navigate(`/checkpayment?reference=${reference}&amount=${amount}&status=${finalStatus}`);
-      }, 1600);
     } catch (err) {
-      const msg = err.response?.data?.message || "Server error!";
-      Swal.fire({ icon: "error", text: msg });
+      Swal.fire({ icon: "error", text: "Server error" });
     } finally {
       setLoading(false);
     }
@@ -78,7 +108,13 @@ export default function OtpPage() {
 
   // ------------------ CANCEL PAYMENT ------------------
   const handleCancel = () => {
-    navigate(`/checkpayment?reference=${reference}&amount=${amount}&status=cancelled`);
+    Swal.fire({
+      icon: "warning",
+      title: "Cancelled",
+      text: "Payment Cancelled",
+      timer: 1200,
+      showConfirmButton: false,
+    }).then(() => redirectToCallback("cancelled"));
   };
 
   return (
@@ -86,9 +122,11 @@ export default function OtpPage() {
       <div style={styles.card}>
         <h2 style={styles.title}>3D Secure Verification</h2>
 
-        <p style={styles.amount}>
-          Amount: <strong>${amount}</strong>
-        </p>
+        {amount && (
+          <p style={styles.amount}>
+            Amount: <strong>${amount}</strong>
+          </p>
+        )}
 
         <p style={styles.timer}>
           Time Remaining: <span style={styles.timeBox}>{formatTime(timer)}</span>

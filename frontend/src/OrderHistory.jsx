@@ -1,3 +1,4 @@
+// OrderHistory.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -15,7 +16,13 @@ export default function OrderHistory() {
     if (s === "approved") return "#4CAF50";
     if (s === "failed") return "#E53935";
     if (s === "pending") return "#FFC107";
-    return "#777"; // default color for any other status
+    return "#777"; // default
+  };
+
+  // ------------------ MASK CVV ------------------
+  const maskCVV = (cvv) => {
+    if (!cvv) return "-";
+    return "*".repeat(cvv.length);
   };
 
   // ------------------ FETCH ORDERS ------------------
@@ -59,7 +66,7 @@ export default function OrderHistory() {
   };
 
   if (loading)
-    return <h3 style={{ textAlign: "center", marginTop: "50px" }}>Loading...</h3>;
+    return <h3 style={{ textAlign: "center", marginTop: 50 }}>Loading...</h3>;
 
   return (
     <div style={styles.container}>
@@ -80,7 +87,7 @@ export default function OrderHistory() {
                 <span style={styles.label}>Reference:</span> {o.reference}
               </div>
               <div style={styles.cardRow}>
-                <span style={styles.label}>CVV:</span> {o.cardCVV || "-"}
+                <span style={styles.label}>CVV:</span> {maskCVV(o.cardCVV)}
               </div>
               <div style={styles.cardRow}>
                 <span style={styles.label}>Amount:</span> {o.amount} {o.currency}
@@ -95,6 +102,9 @@ export default function OrderHistory() {
                 >
                   {o.status || "Unknown"}
                 </span>
+              </div>
+              <div style={styles.cardRow}>
+                <span style={styles.label}>Name:</span> {o.firstname} {o.lastname}
               </div>
               <button
                 style={styles.deleteBtn}
@@ -120,5 +130,5 @@ const styles = {
   cardRow: { display: "flex", justifyContent: "space-between", fontSize: 14 },
   label: { fontWeight: 600 },
   statusBadge: { color: "#fff", padding: "3px 10px", borderRadius: 12, fontSize: 12, textTransform: "capitalize" },
-  deleteBtn: { marginTop: 15, padding: 8, background: "#d33", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 13, transition: "0.3s" },
+  deleteBtn: { marginTop: 15, padding: 8, background: "#d33", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 13, transition: "0.3s", outline: "none" },
 };

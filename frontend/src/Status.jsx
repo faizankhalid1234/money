@@ -38,7 +38,7 @@ export default function Status() {
       {status === "failed" && (
         <div style={{ color: "red" }}>
           <h3>3D Transaction Failed ❌</h3>
-          <p>Reference: {ref || "—"}</p>
+          <p>Reference: {ref || "—"}</p>r
         </div>
       )}
 
