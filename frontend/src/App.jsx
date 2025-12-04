@@ -148,52 +148,41 @@ export default function App() {
   };
 
   // ------------------ SUBMIT PAYMENT ------------------
-  const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validateForm()) return;
+ const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
 
-  setLoading(true);
-  setBackendError("");
+    setLoading(true);
+    setBackendError("");
 
-  const payload = {
-    ...form,
-    cardNumber: form.realCard,
-    country: form.country.value,
-    state: form.state.value,
-    city: form.city.value,
-    token: "MY_SECRET_TOKEN",
-  };
+    const payload = {
+      ...form,
+      cardNumber: form.realCard,
+      country: form.country.value,
+      state: form.state.value,
+      city: form.city.value,
+      token: "MY_SECRET_TOKEN",
+    };
 
-  try {
-    const res = await axios.post("http://localhost:5000/api/create-payment", payload);
-    const { reference, orderid, transaction } = res.data.data;
+    try {
+      const res = await axios.post("http://localhost:5000/api/create-payment", payload);
+      const { reference, transaction } = res.data.data;
 
-    if (transaction.status.toLowerCase() === "success") {
-      Swal.fire("Success", transaction.message, "success");
-    } 
-    else if (
-      transaction.status.toLowerCase() === "3d" ||
-      transaction.status.toLowerCase() === "pending"
-    ) {
-      // Redirect to OTP page
-      const q = new URLSearchParams({
-        reference,
-        amount: form.amount,
-        callback_url: form.callback_url,
-      }).toString();
-
-      window.location.href = `/otp?${q}`;
-    } 
-    else {
-      Swal.fire("Failed", transaction.message, "error");
+      if (transaction.status.toLowerCase() === "success") {
+        Swal.fire("Success", transaction.message, "success");
+      } else if (transaction.status.toLowerCase() === "3d" || transaction.status.toLowerCase() === "pending") {
+        // ✅ URL me sirf reference
+        window.location.href = `/otp?reference=${reference}`;
+      } else {
+        Swal.fire("Failed", transaction.message, "error");
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message;
+      Swal.fire("Server Error", msg, "error");
     }
-  } catch (err) {
-    const msg = err.response?.data?.message || err.message;
-    Swal.fire("Server Error", msg, "error");
-  }
 
-  setLoading(false);
-};
+    setLoading(false);
+  };
 
 
   return (

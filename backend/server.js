@@ -191,20 +191,29 @@ app.get("/api/payments", async (req, res) => {
 // ======================================================================
 // GET ORDER DETAILS BY REFERENCE (NEW API)
 // ======================================================================
-app.get("/api/order", async (req, res) => {
+// GET ORDER DETAILS BY REFERENCE (PATH PARAM)
+app.get("/api/order/:reference", async (req, res) => {
   try {
-    const { reference } = req.query;
-    if (!reference) return res.status(400).json({ status: "error", message: "Reference is required" });
+    const reference = req.params.reference;
 
     const order = await Payment.findOne({ reference });
-    if (!order) return res.status(404).json({ status: "error", message: "Order not found" });
+    if (!order)
+      return res.status(404).json({ status: "error", message: "Order not found" });
 
-    return res.json({ status: "success", data: { amount: order.amount, callback_url: order.callback_url } });
+    return res.json({
+      status: "success",
+      data: {
+        amount: order.amount,
+        callback_url: order.callback_url,
+      },
+    });
   } catch (err) {
     console.log("Fetch Order Error:", err);
     return res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 });
+
+
 
 // ------------------ Start Server ------------------
 const PORT = process.env.PORT || 5000;

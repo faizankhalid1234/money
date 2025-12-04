@@ -10,7 +10,7 @@ export default function OtpPage() {
   // ------------------ QUERY PARAMS FROM URL ------------------
   const reference = searchParams.get("reference");
 
-  const [amount, setAmount] = useState(null); // amount hidden
+  const [amount, setAmount] = useState(null); 
   const [callbackUrl, setCallbackUrl] = useState("");
 
   const [otp, setOtp] = useState("");
@@ -18,9 +18,9 @@ export default function OtpPage() {
   const [timer, setTimer] = useState(900); // 15 minutes countdown
 
   // ------------------ FETCH ORDER DETAIL ------------------
+ 
   useEffect(() => {
     if (!reference) return;
-
     axios
       .get(`http://localhost:5000/api/order/${reference}`)
       .then((res) => {
