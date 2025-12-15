@@ -72,9 +72,14 @@ export default function OrderHistory() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h2>Order History</h2>
-        <button style={styles.addBtn} onClick={() => navigate("/payment")}>
-          + Add New Payment
-        </button>
+        <div>
+          <button style={styles.addBtn} onClick={() => navigate("/payment")}>
+            + Add New Payment
+          </button>
+          <button style={styles.addCompanyBtn} onClick={() => navigate("/company/new")}>
+            + Add Company
+          </button>
+        </div>
       </div>
 
       {orders.length === 0 ? (
@@ -103,13 +108,19 @@ export default function OrderHistory() {
                   {o.status || "Unknown"}
                 </span>
               </div>
+
+              {/* PERSONAL INFO */}
               <div style={styles.cardRow}>
                 <span style={styles.label}>Name:</span> {o.firstname} {o.lastname}
               </div>
-              <button
-                style={styles.deleteBtn}
-                onClick={() => handleDelete(o._id)}
-              >
+              <div style={styles.cardRow}>
+                <span style={styles.label}>Email:</span> {o.email}
+              </div>
+              <div style={styles.cardRow}>
+                <span style={styles.label}>Phone:</span> {o.phone}
+              </div>
+
+              <button style={styles.deleteBtn} onClick={() => handleDelete(o._id)}>
                 Delete
               </button>
             </div>
@@ -124,7 +135,8 @@ export default function OrderHistory() {
 const styles = {
   container: { maxWidth: 900, margin: "50px auto", fontFamily: "Arial", padding: 20 },
   header: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 25 },
-  addBtn: { padding: "10px 18px", background: "#4a90e2", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: "bold" },
+  addBtn: { padding: "10px 18px", background: "#4a90e2", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: "bold", marginRight: 10 },
+  addCompanyBtn: { padding: "10px 18px", background: "#28a745", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: "bold" },
   cardsContainer: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 20 },
   card: { background: "#f5f6ff", borderRadius: 12, padding: 20, boxShadow: "0 4px 15px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", gap: 10, transition: "0.3s" },
   cardRow: { display: "flex", justifyContent: "space-between", fontSize: 14 },

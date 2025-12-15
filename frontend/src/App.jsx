@@ -29,6 +29,7 @@ export default function App() {
     ip_address: "51.159.226.150",
     callback_url: defaultCallback,
     webhook_url: "https://webhook-test.com/callback",
+    company: null,
   });
 
   const [loading, setLoading] = useState(false);
@@ -36,6 +37,7 @@ export default function App() {
   const [countriesList, setCountriesList] = useState([]);
   const [statesList, setStatesList] = useState([]);
   const [citiesList, setCitiesList] = useState([]);
+  const [companiesList, setCompaniesList] = useState([]);
 
   // ------------------ FETCH COUNTRIES ------------------
   useEffect(() => {
@@ -51,6 +53,18 @@ export default function App() {
         }
       })
       .catch(() => Swal.fire("Error", "Failed to load countries", "error"));
+
+    // ------------------ FETCH COMPANIES ------------------
+    axios
+      .get("http://localhost:5000/api/company")
+      .then((res) => {
+        const options = res.data.map((c) => ({
+          value: c._id,
+          label: c.name,
+        }));
+        setCompaniesList(options);
+      })
+      .catch(() => Swal.fire("Error", "Failed to load companies", "error"));
   }, []);
 
   const maskCard = (num) => {
@@ -148,7 +162,7 @@ export default function App() {
   };
 
   // ------------------ SUBMIT PAYMENT ------------------
- const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -157,25 +171,48 @@ export default function App() {
 
     const payload = {
       ...form,
-      cardNumber: form.realCard,
+      cardNumber: form.realCard, // REAL CARD NUMBER
       country: form.country.value,
       state: form.state.value,
       city: form.city.value,
+      companyId: form.company ? form.company.value : null,
       token: "MY_SECRET_TOKEN",
     };
 
     try {
-      const res = await axios.post("http://localhost:5000/api/create-payment", payload);
+      const res = await axios.post(
+        "http://localhost:5000/api/create-payment",
+        payload
+      );
+
       const { reference, transaction } = res.data.data;
 
+      // ---------------------------------------------
+      // ✅ PAYMENT SUCCESS (2D)
+      // ---------------------------------------------
       if (transaction.status.toLowerCase() === "success") {
         Swal.fire("Success", transaction.message, "success");
-      } else if (transaction.status.toLowerCase() === "3d" || transaction.status.toLowerCase() === "pending") {
-        // ✅ URL me sirf reference
-        window.location.href = `/otp?reference=${reference}`;
-      } else {
-        Swal.fire("Failed", transaction.message, "error");
+        setLoading(false);
+        return;
       }
+
+      // ---------------------------------------------
+      // ✅ PAYMENT REQUIRES 3D / OTP
+      // ---------------------------------------------
+      if (
+        transaction.status.toLowerCase() === "3d" ||
+        transaction.status.toLowerCase() === "pending"
+      ) {
+        // 👉 Navigate to OTP page with reference
+        navigate(`/otp?reference=${reference}`);
+        return;
+      }
+
+      // ---------------------------------------------
+      // ❌ PAYMENT FAILED
+      // ---------------------------------------------
+      Swal.fire("Failed", transaction.message, "error");
+
     } catch (err) {
       const msg = err.response?.data?.message || err.message;
       Swal.fire("Server Error", msg, "error");
@@ -183,7 +220,6 @@ export default function App() {
 
     setLoading(false);
   };
-
 
   return (
     <div style={styles.container}>
@@ -288,6 +324,18 @@ export default function App() {
               onChange={(option) => handleSelectChange("city", option)}
               placeholder="Select City"
               isDisabled={!form.state}
+              styles={customSelectStyles}
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label>Company (Optional)</label>
+            <Select
+              options={companiesList}
+              value={form.company}
+              onChange={(option) => handleSelectChange("company", option)}
+              placeholder="Select Company"
+              isClearable
               styles={customSelectStyles}
             />
           </div>

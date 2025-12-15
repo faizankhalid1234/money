@@ -33,6 +33,7 @@ const paymentSchema = new mongoose.Schema(
     webhook_url: String,
 
     status: String,
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company" },
   },
   { timestamps: true }
 );

@@ -1,3 +1,4 @@
+// Verification.jsx (updated)
 import React, { useEffect, useState } from "react";
 
 export default function Verification() {
@@ -17,7 +18,7 @@ export default function Verification() {
       return;
     }
 
-    // Only normalize for UI coloring
+    // Normalize status for UI
     const backendStatus = ["approved", "success"].includes(backendStatusRaw.toLowerCase())
       ? "success"
       : ["failed", "declined"].includes(backendStatusRaw.toLowerCase())
