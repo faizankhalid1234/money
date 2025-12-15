@@ -9,7 +9,9 @@ export default function CompanyDetail() {
 
   useEffect(() => {
     axios
-      .get(`http://localhost:5000/api/company/${id}`)
+      .get(`http://localhost:5000/api/company/${id}`, {
+        headers: { token: "MY_SECRET_TOKEN" }
+      })
       .then((res) => setCompany(res.data))
       .catch((err) => console.log(err));
   }, [id]);

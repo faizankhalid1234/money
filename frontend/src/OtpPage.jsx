@@ -10,7 +10,7 @@ export default function OtpPage() {
   // ------------------ QUERY PARAMS FROM URL ------------------
   const reference = searchParams.get("reference");
 
-  const [amount, setAmount] = useState(null); 
+  const [amount, setAmount] = useState(null);
   const [callbackUrl, setCallbackUrl] = useState("");
 
   const [otp, setOtp] = useState("");
@@ -18,11 +18,13 @@ export default function OtpPage() {
   const [timer, setTimer] = useState(900); // 15 minutes countdown
 
   // ------------------ FETCH ORDER DETAIL ------------------
- 
+
   useEffect(() => {
     if (!reference) return;
     axios
-      .get(`http://localhost:5000/api/order/${reference}`)
+      .get(`http://localhost:5000/api/order/${reference}`, {
+        headers: { token: "MY_SECRET_TOKEN" }
+      })
       .then((res) => {
         if (res.data.status === "success") {
           setAmount(res.data.data.amount);
@@ -77,6 +79,8 @@ export default function OtpPage() {
       const res = await axios.post("http://localhost:5000/api/verify-otp", {
         reference,
         otp,
+      }, {
+        headers: { token: "MY_SECRET_TOKEN" }
       });
 
       const finalStatus = res.data.status; // approved / failed

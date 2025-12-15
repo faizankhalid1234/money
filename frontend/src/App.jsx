@@ -28,7 +28,6 @@ export default function App() {
     zip_code: "400069",
     ip_address: "51.159.226.150",
     callback_url: defaultCallback,
-    webhook_url: "https://webhook-test.com/callback",
     company: null,
   });
 
@@ -42,7 +41,9 @@ export default function App() {
   // ------------------ FETCH COUNTRIES ------------------
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/countries")
+      .get("http://localhost:5000/api/countries", {
+        headers: { token: "MY_SECRET_TOKEN" }
+      })
       .then((res) => {
         if (res.data.status === "success") {
           const options = res.data.data.map((c) => ({
@@ -56,11 +57,14 @@ export default function App() {
 
     // ------------------ FETCH COMPANIES ------------------
     axios
-      .get("http://localhost:5000/api/company")
+      .get("http://localhost:5000/api/company", {
+        headers: { token: "MY_SECRET_TOKEN" }
+      })
       .then((res) => {
         const options = res.data.map((c) => ({
           value: c._id,
           label: c.name,
+          merchant_id: c.merchant_id,
         }));
         setCompaniesList(options);
       })
@@ -89,6 +93,8 @@ export default function App() {
         try {
           const res = await axios.post("http://localhost:5000/api/states", {
             country: selectedOption.value,
+          }, {
+            headers: { token: "MY_SECRET_TOKEN" }
           });
           if (res.data.status === "success") {
             setStatesList(res.data.data.map((s) => ({ value: s, label: s })));
@@ -107,6 +113,8 @@ export default function App() {
           const res = await axios.post("http://localhost:5000/api/cities", {
             country: form.country.value,
             state: selectedOption.value,
+          }, {
+            headers: { token: "MY_SECRET_TOKEN" }
           });
           if (res.data.status === "success") {
             setCitiesList(res.data.data.map((c) => ({ value: c, label: c })));
@@ -176,7 +184,8 @@ export default function App() {
       state: form.state.value,
       city: form.city.value,
       companyId: form.company ? form.company.value : null,
-      token: "MY_SECRET_TOKEN",
+      merchant_id: form.company ? form.company.merchant_id : null,
+      token: form.company ? form.company.merchant_id : "MY_SECRET_TOKEN",
     };
 
     try {
@@ -199,10 +208,7 @@ export default function App() {
       // ---------------------------------------------
       // ✅ PAYMENT REQUIRES 3D / OTP
       // ---------------------------------------------
-      if (
-        transaction.status.toLowerCase() === "3d" ||
-        transaction.status.toLowerCase() === "pending"
-      ) {
+      if (transaction.status.toLowerCase() === "pending") {
         // 👉 Navigate to OTP page with reference
         navigate(`/otp?reference=${reference}`);
         return;
@@ -341,7 +347,7 @@ export default function App() {
           </div>
 
           <div style={styles.inputGroup}>
-            <label>Callback URL (for 3D payments)</label>
+            <label>Callback URL</label>
             <input
               name="callback_url"
               value={form.callback_url}

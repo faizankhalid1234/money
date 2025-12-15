@@ -18,7 +18,9 @@ export default function CompanyForm() {
   useEffect(() => {
     if (id) {
       axios
-        .get(`http://localhost:5000/api/company/${id}`)
+        .get(`http://localhost:5000/api/company/${id}`, {
+          headers: { token: "MY_SECRET_TOKEN" }
+        })
         .then((res) => {
           setForm({
             name: res.data.name,
@@ -51,10 +53,14 @@ export default function CompanyForm() {
     setLoading(true);
     try {
       if (id) {
-        await axios.put(`http://localhost:5000/api/company/${id}`, form);
+        await axios.put(`http://localhost:5000/api/company/${id}`, form, {
+          headers: { token: "MY_SECRET_TOKEN" }
+        });
         Swal.fire("Success", "Company updated successfully", "success");
       } else {
-        await axios.post("http://localhost:5000/api/company", form);
+        await axios.post("http://localhost:5000/api/company", form, {
+          headers: { token: "MY_SECRET_TOKEN" }
+        });
         Swal.fire("Success", "Company created successfully", "success");
       }
       navigate("/companies");

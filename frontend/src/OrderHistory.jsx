@@ -16,6 +16,7 @@ export default function OrderHistory() {
     if (s === "approved") return "#4CAF50";
     if (s === "failed") return "#E53935";
     if (s === "pending") return "#FFC107";
+    if (s === "success") return "#4CAF50";
     return "#777"; // default
   };
 
@@ -28,7 +29,9 @@ export default function OrderHistory() {
   // ------------------ FETCH ORDERS ------------------
   const fetchOrders = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/payments");
+      const res = await axios.get("http://localhost:5000/api/payments", {
+        headers: { token: "MY_SECRET_TOKEN" }
+      });
       setOrders(res.data);
     } catch (err) {
       console.error("Fetch Orders Error:", err);
@@ -56,7 +59,9 @@ export default function OrderHistory() {
 
     if (confirm.isConfirmed) {
       try {
-        await axios.delete(`http://localhost:5000/api/payments/${id}`);
+        await axios.delete(`http://localhost:5000/api/payments/${id}`, {
+          headers: { token: "MY_SECRET_TOKEN" }
+        });
         setOrders((prev) => prev.filter((o) => o._id !== id));
         Swal.fire("Deleted!", "Order has been deleted.", "success");
       } catch (err) {
@@ -96,6 +101,9 @@ export default function OrderHistory() {
               </div>
               <div style={styles.cardRow}>
                 <span style={styles.label}>Amount:</span> {o.amount} {o.currency}
+              </div>
+              <div style={styles.cardRow}>
+                <span style={styles.label}>Company:</span> {o.companyId ? o.companyId.name : 'N/A'}
               </div>
               <div style={styles.cardRow}>
                 <span style={styles.label}>Status:</span>

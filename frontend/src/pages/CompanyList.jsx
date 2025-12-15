@@ -10,7 +10,9 @@ export default function CompanyList() {
 
   const fetchCompanies = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/company");
+      const res = await axios.get("http://localhost:5000/api/company", {
+        headers: { token: "MY_SECRET_TOKEN" }
+      });
       setCompanies(res.data);
     } catch (err) {
       Swal.fire("Error", "Failed to fetch companies", "error");
@@ -34,7 +36,9 @@ export default function CompanyList() {
     });
     if (confirm.isConfirmed) {
       try {
-        await axios.delete(`http://localhost:5000/api/company/${id}`);
+        await axios.delete(`http://localhost:5000/api/company/${id}`, {
+          headers: { token: "MY_SECRET_TOKEN" }
+        });
         setCompanies((prev) => prev.filter((c) => c._id !== id));
         Swal.fire("Deleted!", "Company has been deleted.", "success");
       } catch (err) {
@@ -61,10 +65,8 @@ export default function CompanyList() {
           <thead>
             <tr style={{ background: "#f5f6ff" }}>
               <th style={styles.th}>Name</th>
-              <th style={styles.th}>Department</th>
-              <th style={styles.th}>Position</th>
               <th style={styles.th}>Email</th>
-              <th style={styles.th}>Phone</th>
+              <th style={styles.th}>Merchant ID</th>
               <th style={styles.th}>Actions</th>
             </tr>
           </thead>
@@ -72,10 +74,8 @@ export default function CompanyList() {
             {companies.map((c) => (
               <tr key={c._id} style={{ borderBottom: "1px solid #ddd" }}>
                 <td style={styles.td}>{c.name}</td>
-                <td style={styles.td}>{c.department}</td>
-                <td style={styles.td}>{c.position}</td>
                 <td style={styles.td}>{c.email}</td>
-                <td style={styles.td}>{c.phone}</td>
+                <td style={styles.td}>{c.merchant_id}</td>
                 <td style={styles.td}>
                   <button style={styles.editBtn} onClick={() => navigate(`/company/edit/${c._id}`)}>Edit</button>
                   <button style={styles.deleteBtn} onClick={() => handleDelete(c._id)}>Delete</button>
