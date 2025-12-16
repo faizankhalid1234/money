@@ -11,7 +11,10 @@ export default function CompanyList() {
   const fetchCompanies = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/company", {
-        headers: { token: "MY_SECRET_TOKEN" }
+        headers: {
+          token: "MY_SECRET_TOKEN",
+          merchant_id: null
+        }
       });
       setCompanies(res.data);
     } catch (err) {
@@ -37,7 +40,10 @@ export default function CompanyList() {
     if (confirm.isConfirmed) {
       try {
         await axios.delete(`http://localhost:5000/api/company/${id}`, {
-          headers: { token: "MY_SECRET_TOKEN" }
+          headers: {
+            token: "MY_SECRET_TOKEN",
+            merchant_id: null
+          }
         });
         setCompanies((prev) => prev.filter((c) => c._id !== id));
         Swal.fire("Deleted!", "Company has been deleted.", "success");

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import api from "./services/api.js";
 import Swal from "sweetalert2";
 import Select from "react-select";
 import { useNavigate } from "react-router-dom";
@@ -37,12 +38,13 @@ export default function App() {
   const [statesList, setStatesList] = useState([]);
   const [citiesList, setCitiesList] = useState([]);
   const [companiesList, setCompaniesList] = useState([]);
+  const [verifiedMerchantId, setVerifiedMerchantId] = useState("");
 
   // ------------------ FETCH COUNTRIES ------------------
   useEffect(() => {
-    axios
+    api
       .get("http://localhost:5000/api/countries", {
-        headers: { token: "MY_SECRET_TOKEN" }
+        headers: { "merchant-id": "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d" }
       })
       .then((res) => {
         if (res.data.status === "success") {
@@ -56,9 +58,9 @@ export default function App() {
       .catch(() => Swal.fire("Error", "Failed to load countries", "error"));
 
     // ------------------ FETCH COMPANIES ------------------
-    axios
+    api
       .get("http://localhost:5000/api/company", {
-        headers: { token: "MY_SECRET_TOKEN" }
+        headers: { "merchant-id": "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d" }
       })
       .then((res) => {
         const options = res.data.map((c) => ({
@@ -91,10 +93,10 @@ export default function App() {
       setCitiesList([]);
       if (selectedOption) {
         try {
-          const res = await axios.post("http://localhost:5000/api/states", {
+          const res = await api.post("http://localhost:5000/api/states", {
             country: selectedOption.value,
           }, {
-            headers: { token: "MY_SECRET_TOKEN" }
+            headers: { "merchant-id": "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d" }
           });
           if (res.data.status === "success") {
             setStatesList(res.data.data.map((s) => ({ value: s, label: s })));
@@ -110,11 +112,11 @@ export default function App() {
       setCitiesList([]);
       if (selectedOption && form.country) {
         try {
-          const res = await axios.post("http://localhost:5000/api/cities", {
+          const res = await api.post("http://localhost:5000/api/cities", {
             country: form.country.value,
             state: selectedOption.value,
           }, {
-            headers: { token: "MY_SECRET_TOKEN" }
+            headers: { "merchant-id": "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d" }
           });
           if (res.data.status === "success") {
             setCitiesList(res.data.data.map((c) => ({ value: c, label: c })));
@@ -185,14 +187,18 @@ export default function App() {
       city: form.city.value,
       companyId: form.company ? form.company.value : null,
       merchant_id: form.company ? form.company.merchant_id : null,
-      token: form.company ? form.company.merchant_id : "MY_SECRET_TOKEN",
+      token: "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d",
     };
 
     try {
-      const res = await axios.post(
+      const res = await api.post(
         "http://localhost:5000/api/create-payment",
         payload
       );
+
+      if (res.data.data.merchant_verified) {
+        setVerifiedMerchantId("MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d");
+      }
 
       const { reference, transaction } = res.data.data;
 
@@ -230,6 +236,7 @@ export default function App() {
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>💳 Secure Payment Form</h2>
+      {verifiedMerchantId && <div style={styles.verifiedBox}>Verified Merchant ID: {verifiedMerchantId}</div>}
       {backendError && <div style={styles.errorBox}>{backendError}</div>}
 
       <form onSubmit={handleSubmit}>
@@ -390,6 +397,14 @@ const styles = {
     borderRadius: 10,
     marginBottom: 20,
     color: "#c00",
+    fontWeight: 600,
+  },
+  verifiedBox: {
+    background: "#e5ffe5",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+    color: "#0c0",
     fontWeight: 600,
   },
   grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 },

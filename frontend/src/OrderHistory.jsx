@@ -1,4 +1,3 @@
-// OrderHistory.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -9,15 +8,17 @@ export default function OrderHistory() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // 🔑 Your actual Merchant ID
+  const merchantId = "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d";
+
   // ------------------ STATUS COLORS ------------------
   const getStatusColor = (status) => {
     if (!status) return "#999";
     const s = status.toLowerCase();
-    if (s === "approved") return "#4CAF50";
+    if (s === "approved" || s === "success") return "#4CAF50";
     if (s === "failed") return "#E53935";
     if (s === "pending") return "#FFC107";
-    if (s === "success") return "#4CAF50";
-    return "#777"; // default
+    return "#777";
   };
 
   // ------------------ MASK CVV ------------------
@@ -30,7 +31,9 @@ export default function OrderHistory() {
   const fetchOrders = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/payments", {
-        headers: { token: "MY_SECRET_TOKEN" }
+        headers: {
+          "merchant-id": merchantId,
+        },
       });
       setOrders(res.data);
     } catch (err) {
@@ -60,11 +63,12 @@ export default function OrderHistory() {
     if (confirm.isConfirmed) {
       try {
         await axios.delete(`http://localhost:5000/api/payments/${id}`, {
-          headers: { token: "MY_SECRET_TOKEN" }
+          headers: { "merchant-id": merchantId },
         });
         setOrders((prev) => prev.filter((o) => o._id !== id));
         Swal.fire("Deleted!", "Order has been deleted.", "success");
       } catch (err) {
+        console.error(err);
         Swal.fire("Error", "Failed to delete order.", "error");
       }
     }
@@ -81,7 +85,10 @@ export default function OrderHistory() {
           <button style={styles.addBtn} onClick={() => navigate("/payment")}>
             + Add New Payment
           </button>
-          <button style={styles.addCompanyBtn} onClick={() => navigate("/company/new")}>
+          <button
+            style={styles.addCompanyBtn}
+            onClick={() => navigate("/company/new")}
+          >
             + Add Company
           </button>
         </div>
@@ -96,15 +103,15 @@ export default function OrderHistory() {
               <div style={styles.cardRow}>
                 <span style={styles.label}>Reference:</span> {o.reference}
               </div>
+
               <div style={styles.cardRow}>
                 <span style={styles.label}>CVV:</span> {maskCVV(o.cardCVV)}
               </div>
+
               <div style={styles.cardRow}>
                 <span style={styles.label}>Amount:</span> {o.amount} {o.currency}
               </div>
-              <div style={styles.cardRow}>
-                <span style={styles.label}>Company:</span> {o.companyId ? o.companyId.name : 'N/A'}
-              </div>
+
               <div style={styles.cardRow}>
                 <span style={styles.label}>Status:</span>
                 <span
@@ -121,14 +128,19 @@ export default function OrderHistory() {
               <div style={styles.cardRow}>
                 <span style={styles.label}>Name:</span> {o.firstname} {o.lastname}
               </div>
+
               <div style={styles.cardRow}>
                 <span style={styles.label}>Email:</span> {o.email}
               </div>
+
               <div style={styles.cardRow}>
                 <span style={styles.label}>Phone:</span> {o.phone}
               </div>
 
-              <button style={styles.deleteBtn} onClick={() => handleDelete(o._id)}>
+              <button
+                style={styles.deleteBtn}
+                onClick={() => handleDelete(o._id)}
+              >
                 Delete
               </button>
             </div>
@@ -143,12 +155,57 @@ export default function OrderHistory() {
 const styles = {
   container: { maxWidth: 900, margin: "50px auto", fontFamily: "Arial", padding: 20 },
   header: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 25 },
-  addBtn: { padding: "10px 18px", background: "#4a90e2", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: "bold", marginRight: 10 },
-  addCompanyBtn: { padding: "10px 18px", background: "#28a745", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: "bold" },
-  cardsContainer: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 20 },
-  card: { background: "#f5f6ff", borderRadius: 12, padding: 20, boxShadow: "0 4px 15px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", gap: 10, transition: "0.3s" },
+  addBtn: {
+    padding: "10px 18px",
+    background: "#4a90e2",
+    color: "#fff",
+    border: "none",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: "bold",
+    marginRight: 10,
+  },
+  addCompanyBtn: {
+    padding: "10px 18px",
+    background: "#28a745",
+    color: "#fff",
+    border: "none",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+  cardsContainer: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+    gap: 20,
+  },
+  card: {
+    background: "#f5f6ff",
+    borderRadius: 12,
+    padding: 20,
+    boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  },
   cardRow: { display: "flex", justifyContent: "space-between", fontSize: 14 },
   label: { fontWeight: 600 },
-  statusBadge: { color: "#fff", padding: "3px 10px", borderRadius: 12, fontSize: 12, textTransform: "capitalize" },
-  deleteBtn: { marginTop: 15, padding: 8, background: "#d33", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 600, fontSize: 13, transition: "0.3s", outline: "none" },
+  statusBadge: {
+    color: "#fff",
+    padding: "3px 10px",
+    borderRadius: 12,
+    fontSize: 12,
+    textTransform: "capitalize",
+  },
+  deleteBtn: {
+    marginTop: 15,
+    padding: 8,
+    background: "#d33",
+    color: "#fff",
+    border: "none",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: 600,
+    fontSize: 13,
+  },
 };

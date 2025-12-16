@@ -19,7 +19,10 @@ export default function CompanyForm() {
     if (id) {
       axios
         .get(`http://localhost:5000/api/company/${id}`, {
-          headers: { token: "MY_SECRET_TOKEN" }
+          headers: {
+            token: "MY_SECRET_TOKEN",
+            merchant_id: null
+          }
         })
         .then((res) => {
           setForm({
@@ -54,12 +57,18 @@ export default function CompanyForm() {
     try {
       if (id) {
         await axios.put(`http://localhost:5000/api/company/${id}`, form, {
-          headers: { token: "MY_SECRET_TOKEN" }
+          headers: {
+            token: "MY_SECRET_TOKEN",
+            merchant_id: null
+          }
         });
         Swal.fire("Success", "Company updated successfully", "success");
       } else {
         await axios.post("http://localhost:5000/api/company", form, {
-          headers: { token: "MY_SECRET_TOKEN" }
+          headers: {
+            token: "MY_SECRET_TOKEN",
+            merchant_id: null
+          }
         });
         Swal.fire("Success", "Company created successfully", "success");
       }

@@ -23,7 +23,10 @@ export default function OtpPage() {
     if (!reference) return;
     axios
       .get(`http://localhost:5000/api/order/${reference}`, {
-        headers: { token: "MY_SECRET_TOKEN" }
+        headers: {
+          token: "MY_SECRET_TOKEN",
+          merchant_id: null
+        }
       })
       .then((res) => {
         if (res.data.status === "success") {
@@ -80,7 +83,10 @@ export default function OtpPage() {
         reference,
         otp,
       }, {
-        headers: { token: "MY_SECRET_TOKEN" }
+        headers: {
+          token: "MY_SECRET_TOKEN",
+          merchant_id: null
+        }
       });
 
       const finalStatus = res.data.status; // approved / failed

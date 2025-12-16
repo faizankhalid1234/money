@@ -10,7 +10,10 @@ export default function CompanyDetail() {
   useEffect(() => {
     axios
       .get(`http://localhost:5000/api/company/${id}`, {
-        headers: { token: "MY_SECRET_TOKEN" }
+        headers: { 
+          token: "MY_SECRET_TOKEN",
+          merchant_id: null
+        }
       })
       .then((res) => setCompany(res.data))
       .catch((err) => console.log(err));

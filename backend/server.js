@@ -19,29 +19,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ================== MERCHANT ID ==================
+const FIXED_MERCHANT_ID = "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d";
+
+// ================== MERCHANT-ID MIDDLEWARE ==================
+const merchantMiddleware = (req, res, next) => {
+  const merchantId = req.headers['merchant-id'];
+  if (merchantId !== FIXED_MERCHANT_ID) {
+    return res.status(401).json({ status: "error", message: "Invalid Merchant ID" });
+  }
+  res.locals.merchantVerified = true;
+  next();
+};
+
 // ================== ROUTES ==================
-app.use("/api/company", companyRoutes);
-app.use("/api", paymentRoutes);
-
-// ================== DEBUG ==================
-console.log("ENV PATH:", path.resolve("./.env"));
-console.log("PORT =>", process.env.PORT);
-console.log("MONGO_URI =>", process.env.MONGO_URI ? "LOADED" : "NOT LOADED");
-
-// ================== MONGODB CONNECTION ==================
-mongoose
-  .connect(process.env.MONGO_URI, { dbName: "mydb" })
-  .then(async () => {
-    console.log("✅ MongoDB Connected!");
-    // Drop old index if exists
-    try {
-      await mongoose.connection.db.collection('companies').dropIndex('merchant_id_1');
-      console.log('Old merchant_id index dropped');
-    } catch (err) {
-      console.log('Old index not found or already dropped');
-    }
-  })
-  .catch((err) => console.log("❌ MongoDB Error:", err.message));
+// ✅ Apply merchantMiddleware only to company + payment routes
+app.use("/api/company", merchantMiddleware, companyRoutes);
+app.use("/api", merchantMiddleware, paymentRoutes);
 
 // ================== OTP VERIFICATION ==================
 app.post("/api/verify-otp", async (req, res) => {
@@ -58,7 +52,8 @@ app.post("/api/verify-otp", async (req, res) => {
   }
 });
 
-// ================== COUNTRIES ==================
+// ================== COUNTRIES / STATES / CITIES ==================
+// ✅ No merchant check here
 app.get("/api/countries", async (req, res) => {
   try {
     const response = await axios.get("https://countriesnow.space/api/v0.1/countries/positions");
@@ -71,29 +66,22 @@ app.get("/api/countries", async (req, res) => {
   }
 });
 
-// ================== STATES ==================
 app.post("/api/states", async (req, res) => {
   try {
     const { country } = req.body;
     if (!country) return res.status(400).json({ status: "error", message: "Country is required" });
-
     const response = await axios.post("https://countriesnow.space/api/v0.1/countries/states", { country });
-    res.json({
-      status: "success",
-      data: response.data.data.states.map((s) => s.name),
-    });
+    res.json({ status: "success", data: response.data.data.states.map((s) => s.name) });
   } catch {
     res.status(500).json({ status: "error", message: "Failed to fetch states" });
   }
 });
 
-// ================== CITIES ==================
 app.post("/api/cities", async (req, res) => {
   try {
     const { country, state } = req.body;
     if (!country || !state)
       return res.status(400).json({ status: "error", message: "Country and State are required" });
-
     const response = await axios.post("https://countriesnow.space/api/v0.1/countries/state/cities", { country, state });
     res.json({ status: "success", data: response.data.data });
   } catch {
@@ -107,12 +95,17 @@ app.get("/api/order/:reference", async (req, res) => {
     const { reference } = req.params;
     const order = await Payment.findOne({ reference });
     if (!order) return res.status(404).json({ status: "error", message: "Order not found" });
-
     res.json({ status: "success", data: { amount: order.amount, callback_url: order.callback_url } });
   } catch {
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 });
+
+// ================== MONGODB CONNECTION ==================
+mongoose
+  .connect(process.env.MONGO_URI, { dbName: "mydb" })
+  .then(() => console.log("✅ MongoDB Connected!"))
+  .catch((err) => console.log("❌ MongoDB Error:", err.message));
 
 // ================== START SERVER ==================
 const PORT = process.env.PORT || 5000;

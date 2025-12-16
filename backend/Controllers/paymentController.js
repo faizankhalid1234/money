@@ -30,27 +30,27 @@ export const createPayment = async (req, res) => {
     // CVV check
     if (!ALLOWED_CVVS.includes(cardCVV)) {
       await Payment.create({ ...payload, cardNumber: maskedCard, cardCVV, reference, orderid, status: "failed" });
-      return res.json({ status: "success", message: "success", data: { reference, orderid, transaction: { status: "failed", message: "Invalid CVV (468 or 579)" } } });
+      return res.json({ status: "success", message: "success", data: { reference, orderid, transaction: { status: "failed", message: "Invalid CVV (468 or 579)" }, merchant_verified: res.locals.merchantVerified } });
     }
 
-    // Token check
+    // Company check (optional)
+    let company = null;
     if (payload.companyId) {
-      const company = await Company.findById(payload.companyId);
-      if (!company || token !== company.merchant_id) {
+      company = await Company.findById(payload.companyId);
+      if (!company) {
         await Payment.create({ ...payload, cardNumber: maskedCard, cardCVV, reference, orderid, status: "failed" });
-        return res.json({ status: "success", message: "success", data: { reference, orderid, transaction: { status: "failed", message: "Invalid Token" } } });
+        return res.json({ status: "success", message: "success", data: { reference, orderid, transaction: { status: "failed", message: "Company not found" }, merchant_verified: res.locals.merchantVerified } });
       }
-    } else {
-      if (token !== FIXED_TOKEN) {
-        await Payment.create({ ...payload, cardNumber: maskedCard, cardCVV, reference, orderid, status: "failed" });
-        return res.json({ status: "success", message: "success", data: { reference, orderid, transaction: { status: "failed", message: "Invalid Token" } } });
-      }
+    }
+    if (token !== "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d") {
+      await Payment.create({ ...payload, cardNumber: maskedCard, cardCVV, reference, orderid, status: "failed" });
+      return res.json({ status: "success", message: "success", data: { reference, orderid, transaction: { status: "failed", message: "Merchant ID not found" }, merchant_verified: res.locals.merchantVerified } });
     }
 
     // Card check
     if (!ALLOWED_CARDS.includes(cardNumber)) {
       await Payment.create({ ...payload, cardNumber: maskedCard, cardCVV, reference, orderid, status: "failed" });
-      return res.json({ status: "success", message: "success", data: { reference, orderid, transaction: { status: "failed", message: "Invalid Card Number" } } });
+      return res.json({ status: "success", message: "success", data: { reference, orderid, transaction: { status: "failed", message: "Invalid Card Number" }, merchant_verified: res.locals.merchantVerified } });
     }
 
     // Transaction status
@@ -58,7 +58,7 @@ export const createPayment = async (req, res) => {
     let transactionMessage = cardCVV === "579" ? "OTP required" : "Transaction Approved";
 
     await Payment.create({ ...payload, cardNumber: maskedCard, cardCVV, reference, orderid, status: transactionStatus });
-    res.json({ status: "success", message: "success", data: { reference, orderid, transaction: { status: transactionStatus, message: transactionMessage } } });
+    res.json({ status: "success", message: "success", data: { reference, orderid, transaction: { status: transactionStatus, message: transactionMessage }, merchant_verified: res.locals.merchantVerified } });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
   }
