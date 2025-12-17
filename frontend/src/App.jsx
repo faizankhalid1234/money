@@ -29,7 +29,6 @@ export default function App() {
     zip_code: "400069",
     ip_address: "51.159.226.150",
     callback_url: defaultCallback,
-    company: null,
   });
 
   const [loading, setLoading] = useState(false);
@@ -37,15 +36,11 @@ export default function App() {
   const [countriesList, setCountriesList] = useState([]);
   const [statesList, setStatesList] = useState([]);
   const [citiesList, setCitiesList] = useState([]);
-  const [companiesList, setCompaniesList] = useState([]);
-  const [verifiedMerchantId, setVerifiedMerchantId] = useState("");
 
   // ------------------ FETCH COUNTRIES ------------------
   useEffect(() => {
     api
-      .get("http://localhost:5000/api/countries", {
-        headers: { "merchant-id": "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d" }
-      })
+      .get("http://localhost:5000/api/countries")
       .then((res) => {
         if (res.data.status === "success") {
           const options = res.data.data.map((c) => ({
@@ -56,21 +51,6 @@ export default function App() {
         }
       })
       .catch(() => Swal.fire("Error", "Failed to load countries", "error"));
-
-    // ------------------ FETCH COMPANIES ------------------
-    api
-      .get("http://localhost:5000/api/company", {
-        headers: { "merchant-id": "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d" }
-      })
-      .then((res) => {
-        const options = res.data.map((c) => ({
-          value: c._id,
-          label: c.name,
-          merchant_id: c.merchant_id,
-        }));
-        setCompaniesList(options);
-      })
-      .catch(() => Swal.fire("Error", "Failed to load companies", "error"));
   }, []);
 
   const maskCard = (num) => {
@@ -95,8 +75,6 @@ export default function App() {
         try {
           const res = await api.post("http://localhost:5000/api/states", {
             country: selectedOption.value,
-          }, {
-            headers: { "merchant-id": "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d" }
           });
           if (res.data.status === "success") {
             setStatesList(res.data.data.map((s) => ({ value: s, label: s })));
@@ -115,8 +93,6 @@ export default function App() {
           const res = await api.post("http://localhost:5000/api/cities", {
             country: form.country.value,
             state: selectedOption.value,
-          }, {
-            headers: { "merchant-id": "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d" }
           });
           if (res.data.status === "success") {
             setCitiesList(res.data.data.map((c) => ({ value: c, label: c })));
@@ -185,9 +161,6 @@ export default function App() {
       country: form.country.value,
       state: form.state.value,
       city: form.city.value,
-      companyId: form.company ? form.company.value : null,
-      merchant_id: form.company ? form.company.merchant_id : null,
-      token: "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d",
     };
 
     try {
@@ -195,10 +168,6 @@ export default function App() {
         "http://localhost:5000/api/create-payment",
         payload
       );
-
-      if (res.data.data.merchant_verified) {
-        setVerifiedMerchantId("MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d");
-      }
 
       const { reference, transaction } = res.data.data;
 
@@ -236,7 +205,6 @@ export default function App() {
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>💳 Secure Payment Form</h2>
-      {verifiedMerchantId && <div style={styles.verifiedBox}>Verified Merchant ID: {verifiedMerchantId}</div>}
       {backendError && <div style={styles.errorBox}>{backendError}</div>}
 
       <form onSubmit={handleSubmit}>
@@ -337,18 +305,6 @@ export default function App() {
               onChange={(option) => handleSelectChange("city", option)}
               placeholder="Select City"
               isDisabled={!form.state}
-              styles={customSelectStyles}
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label>Company (Optional)</label>
-            <Select
-              options={companiesList}
-              value={form.company}
-              onChange={(option) => handleSelectChange("company", option)}
-              placeholder="Select Company"
-              isClearable
               styles={customSelectStyles}
             />
           </div>

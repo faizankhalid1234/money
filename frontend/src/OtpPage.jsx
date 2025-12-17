@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { useSearchParams } from "react-router-dom";
-import axios from "axios";
+import api from "./services/api.js";
 
 export default function OtpPage() {
   const [searchParams] = useSearchParams();
@@ -18,16 +18,10 @@ export default function OtpPage() {
   const [timer, setTimer] = useState(900); // 15 minutes countdown
 
   // ------------------ FETCH ORDER DETAIL ------------------
-
   useEffect(() => {
     if (!reference) return;
-    axios
-      .get(`http://localhost:5000/api/order/${reference}`, {
-        headers: {
-          token: "MY_SECRET_TOKEN",
-          merchant_id: null
-        }
-      })
+    api
+      .get(`/order/${reference}`)
       .then((res) => {
         if (res.data.status === "success") {
           setAmount(res.data.data.amount);
@@ -79,14 +73,9 @@ export default function OtpPage() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/verify-otp", {
+      const res = await api.post("/verify-otp", {
         reference,
         otp,
-      }, {
-        headers: {
-          token: "MY_SECRET_TOKEN",
-          merchant_id: null
-        }
       });
 
       const finalStatus = res.data.status; // approved / failed

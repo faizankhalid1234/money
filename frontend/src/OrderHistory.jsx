@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import Swal from "sweetalert2";
+import api, { MERCHANT_ID } from "./services/api.js";
 
 export default function OrderHistory() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // 🔑 Your actual Merchant ID
-  const merchantId = "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d";
 
   // ------------------ STATUS COLORS ------------------
   const getStatusColor = (status) => {
@@ -30,11 +27,7 @@ export default function OrderHistory() {
   // ------------------ FETCH ORDERS ------------------
   const fetchOrders = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/payments", {
-        headers: {
-          "merchant-id": merchantId,
-        },
-      });
+      const res = await api.get("/payments");
       setOrders(res.data);
     } catch (err) {
       console.error("Fetch Orders Error:", err);
@@ -62,9 +55,7 @@ export default function OrderHistory() {
 
     if (confirm.isConfirmed) {
       try {
-        await axios.delete(`http://localhost:5000/api/payments/${id}`, {
-          headers: { "merchant-id": merchantId },
-        });
+        await api.delete(`/payments/${id}`);
         setOrders((prev) => prev.filter((o) => o._id !== id));
         Swal.fire("Deleted!", "Order has been deleted.", "success");
       } catch (err) {

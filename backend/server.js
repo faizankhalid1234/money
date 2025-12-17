@@ -19,23 +19,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ================== MERCHANT ID ==================
-const FIXED_MERCHANT_ID = "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d";
-
-// ================== MERCHANT-ID MIDDLEWARE ==================
-const merchantMiddleware = (req, res, next) => {
-  const merchantId = req.headers['merchant-id'];
-  if (merchantId !== FIXED_MERCHANT_ID) {
-    return res.status(401).json({ status: "error", message: "Invalid Merchant ID" });
-  }
-  res.locals.merchantVerified = true;
-  next();
-};
-
 // ================== ROUTES ==================
-// ✅ Apply merchantMiddleware only to company + payment routes
-app.use("/api/company", merchantMiddleware, companyRoutes);
-app.use("/api", merchantMiddleware, paymentRoutes);
+app.use("/api/company", companyRoutes);
+app.use("/api", paymentRoutes);
 
 // ================== OTP VERIFICATION ==================
 app.post("/api/verify-otp", async (req, res) => {
