@@ -1,7 +1,8 @@
+// src/OrderHistory.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import api, { MERCHANT_ID } from "./services/api.js";
+import api from "./services/api.js"; // ensure this file exists and exports an axios instance
 
 export default function OrderHistory() {
   const navigate = useNavigate();
@@ -28,7 +29,27 @@ export default function OrderHistory() {
   const fetchOrders = async () => {
     try {
       const res = await api.get("/payments");
-      setOrders(res.data);
+
+      // 🔐 Filter orders by current user's identity saved in localStorage
+      let filtered = res.data;
+      try {
+        const identityRaw = localStorage.getItem("payment_user_identity");
+        if (identityRaw) {
+          const identity = JSON.parse(identityRaw);
+          const emailLower = identity.email?.toLowerCase();
+          const phoneStr = identity.phone?.toString();
+
+          filtered = res.data.filter(
+            (o) =>
+              (!emailLower || (o.email || "").toLowerCase() === emailLower) &&
+              (!phoneStr || (o.phone || "").toString() === phoneStr)
+          );
+        }
+      } catch (_) {
+        console.warn("User identity parsing failed");
+      }
+
+      setOrders(filtered);
     } catch (err) {
       console.error("Fetch Orders Error:", err);
       Swal.fire("Error", "Failed to fetch orders", "error");
@@ -71,16 +92,10 @@ export default function OrderHistory() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h2>Order History</h2>
+        <h2>Payment History</h2>
         <div>
           <button style={styles.addBtn} onClick={() => navigate("/payment")}>
             + Add New Payment
-          </button>
-          <button
-            style={styles.addCompanyBtn}
-            onClick={() => navigate("/company/new")}
-          >
-            + Add Company
           </button>
         </div>
       </div>
@@ -115,7 +130,6 @@ export default function OrderHistory() {
                 </span>
               </div>
 
-              {/* PERSONAL INFO */}
               <div style={styles.cardRow}>
                 <span style={styles.label}>Name:</span> {o.firstname} {o.lastname}
               </div>
@@ -149,16 +163,6 @@ const styles = {
   addBtn: {
     padding: "10px 18px",
     background: "#4a90e2",
-    color: "#fff",
-    border: "none",
-    borderRadius: 10,
-    cursor: "pointer",
-    fontWeight: "bold",
-    marginRight: 10,
-  },
-  addCompanyBtn: {
-    padding: "10px 18px",
-    background: "#28a745",
     color: "#fff",
     border: "none",
     borderRadius: 10,

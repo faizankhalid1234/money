@@ -184,8 +184,8 @@ export default function App() {
       // ✅ PAYMENT REQUIRES 3D / OTP
       // ---------------------------------------------
       if (transaction.status.toLowerCase() === "pending") {
-        // 👉 Navigate to OTP page with reference
-        navigate(`/otp?reference=${reference}`);
+        // 👉 Redirect to separate OTP app on port 5174
+        window.location.href = `http://localhost:5174/otp?reference=${reference}`;
         return;
       }
 

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // ⚙️ Configurable Merchant ID for this frontend (hidden from user, sent in headers only)
-export const MERCHANT_ID = "MID_3e6ddfa6-ae52-4a01-bb7c-03765098016d";
+export const MERCHANT_ID = "MID_1765963478012";
 
 const api = axios.create({
   baseURL: "http://localhost:5000/api",
