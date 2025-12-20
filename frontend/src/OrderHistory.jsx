@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import api from "./services/api.js"; // ensure this file exists and exports an axios instance
+import api from "./services/api.js";
 
 export default function OrderHistory() {
   const navigate = useNavigate();
@@ -30,7 +30,6 @@ export default function OrderHistory() {
     try {
       const res = await api.get("/payments");
 
-      // 🔐 Filter orders by current user's identity saved in localStorage
       let filtered = res.data;
       try {
         const identityRaw = localStorage.getItem("payment_user_identity");
@@ -45,11 +44,12 @@ export default function OrderHistory() {
               (!phoneStr || (o.phone || "").toString() === phoneStr)
           );
         }
-      } catch (_) {
-        console.warn("User identity parsing failed");
+      } catch {
+        console.warn("Identity parse failed");
       }
 
-      setOrders(filtered);
+      // 🔝 newest order first
+      setOrders(filtered.slice().reverse());
     } catch (err) {
       console.error("Fetch Orders Error:", err);
       Swal.fire("Error", "Failed to fetch orders", "error");
@@ -70,7 +70,6 @@ export default function OrderHistory() {
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
       confirmButtonText: "Yes, delete it!",
     });
 
@@ -80,24 +79,22 @@ export default function OrderHistory() {
         setOrders((prev) => prev.filter((o) => o._id !== id));
         Swal.fire("Deleted!", "Order has been deleted.", "success");
       } catch (err) {
-        console.error(err);
         Swal.fire("Error", "Failed to delete order.", "error");
       }
     }
   };
 
-  if (loading)
+  if (loading) {
     return <h3 style={{ textAlign: "center", marginTop: 50 }}>Loading...</h3>;
+  }
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <h2>Payment History</h2>
-        <div>
-          <button style={styles.addBtn} onClick={() => navigate("/payment")}>
-            + Add New Payment
-          </button>
-        </div>
+        <button style={styles.addBtn} onClick={() => navigate("/payment")}>
+          + Add New Payment
+        </button>
       </div>
 
       {orders.length === 0 ? (
@@ -107,15 +104,25 @@ export default function OrderHistory() {
           {orders.map((o) => (
             <div key={o._id} style={styles.card}>
               <div style={styles.cardRow}>
-                <span style={styles.label}>Reference:</span> {o.reference}
+                <span style={styles.label}>Reference:</span>
+                <span>{o.reference}</span>
               </div>
 
               <div style={styles.cardRow}>
-                <span style={styles.label}>CVV:</span> {maskCVV(o.cardCVV)}
+                <span style={styles.label}>Merchant ID:</span>
+                <span>{o.merchant_id || "-"}</span>
               </div>
 
               <div style={styles.cardRow}>
-                <span style={styles.label}>Amount:</span> {o.amount} {o.currency}
+                <span style={styles.label}>CVV:</span>
+                <span>{maskCVV(o.cardCVV)}</span>
+              </div>
+
+              <div style={styles.cardRow}>
+                <span style={styles.label}>Amount:</span>
+                <span>
+                  {o.amount} {o.currency}
+                </span>
               </div>
 
               <div style={styles.cardRow}>
@@ -131,15 +138,20 @@ export default function OrderHistory() {
               </div>
 
               <div style={styles.cardRow}>
-                <span style={styles.label}>Name:</span> {o.firstname} {o.lastname}
+                <span style={styles.label}>Name:</span>
+                <span>
+                  {o.firstname} {o.lastname}
+                </span>
               </div>
 
               <div style={styles.cardRow}>
-                <span style={styles.label}>Email:</span> {o.email}
+                <span style={styles.label}>Email:</span>
+                <span>{o.email}</span>
               </div>
 
               <div style={styles.cardRow}>
-                <span style={styles.label}>Phone:</span> {o.phone}
+                <span style={styles.label}>Phone:</span>
+                <span>{o.phone}</span>
               </div>
 
               <button
@@ -158,8 +170,18 @@ export default function OrderHistory() {
 
 // ------------------ STYLES ------------------
 const styles = {
-  container: { maxWidth: 900, margin: "50px auto", fontFamily: "Arial", padding: 20 },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 25 },
+  container: {
+    maxWidth: 900,
+    margin: "50px auto",
+    padding: 20,
+    fontFamily: "Arial",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 25,
+  },
   addBtn: {
     padding: "10px 18px",
     background: "#4a90e2",
@@ -171,19 +193,23 @@ const styles = {
   },
   cardsContainer: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
     gap: 20,
   },
   card: {
     background: "#f5f6ff",
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 20,
     boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
     display: "flex",
     flexDirection: "column",
     gap: 10,
   },
-  cardRow: { display: "flex", justifyContent: "space-between", fontSize: 14 },
+  cardRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: 14,
+  },
   label: { fontWeight: 600 },
   statusBadge: {
     color: "#fff",

@@ -1,49 +1,86 @@
 import Payment from "../models/Payment.js";
 import Company from "../models/Company.js";
-import { generateReference } from "../utils/generateRef.js";
+import axios from "axios";
 
-// --------- MASK CARD NUMBER FUNCTION ---------
-const maskCardNumber = (cardNumber) => {
-  if (!cardNumber || cardNumber.length < 4) return cardNumber;
-  const last4 = cardNumber.slice(-4);
-  return last4.padStart(cardNumber.length, "*");
+// ================== MAILTRAP CONFIG ==================
+const MAILTRAP_URL = "https://sandbox.api.mailtrap.io/api/send/4267784";
+const MAILTRAP_TOKEN = "a9d1b7e7c3bb56af18be2b569ff8c642";
+
+const sendEmail = async ({ to, subject, html }) => {
+  try {
+    await axios.post(
+      MAILTRAP_URL,
+      {
+        from: { email: "hello@example.com", name: "SwipePoint" },
+        to: [{ email: to }],
+        subject,
+        html,
+        category: "Payment",
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${MAILTRAP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    console.log("📧 Email sent to:", to);
+  } catch (err) {
+    console.error("❌ Email failed:", err.response?.data || err.message);
+  }
 };
 
-// Constants
-const FIXED_TOKEN = "MY_SECRET_TOKEN";
+// ================== EMAIL TEMPLATE ==================
+const generateEmailHTML = (payment) => `
+<!DOCTYPE html>
+<html>
+<body style="font-family:Arial">
+  <h2>Payment Successful 🎉</h2>
+  <p><b>Reference:</b> ${payment.reference}</p>
+  <p><b>Amount:</b> ${payment.amount}</p>
+  <p>Thank you for using SwipePoint.</p>
+</body>
+</html>
+`;
+
+// ================== HELPERS ==================
+const maskCardNumber = (cardNumber) => {
+  if (!cardNumber || cardNumber.length < 4) return cardNumber;
+  return "************" + cardNumber.slice(-4);
+};
+
+// ================== CONSTANTS ==================
 const ALLOWED_CARDS = [
   "5356222233334444",
   "1122334411223344",
   "5555111122223333",
 ];
+
 const ALLOWED_CVVS = ["468", "579"];
 
-// CREATE PAYMENT
+// ================== CREATE PAYMENT ==================
 export const createPayment = async (req, res) => {
   try {
-    const merchantIdFromBody = req.body.merchant_id;
-    const merchantIdFromHeader = req.headers["merchant-id"];
-    const merchant_id = (merchantIdFromBody || merchantIdFromHeader || "").trim();
+    const merchant_id =
+      req.body.merchant_id || req.headers["merchant-id"];
+
     const { cardNumber, cardCVV, companyId, ...payload } = req.body;
 
     const reference = `TXN-${Date.now()}`;
     const orderid = Math.random().toString(36).substring(2) + Date.now();
     const maskedCard = maskCardNumber(cardNumber);
 
-    // Merchant / Company check via merchant_id OR fallback companyId
+    // ================== FIND COMPANY ==================
     let company = null;
 
-    // Try merchant_id first (preferred)
     if (merchant_id) {
       company = await Company.findOne({ merchant_id });
     }
 
-    // Fallback: if merchant_id missing or not found, and companyId provided, try by _id
     if (!company && companyId) {
       company = await Company.findById(companyId);
     }
 
-    // Still not found -> fail
     if (!company) {
       await Payment.create({
         ...payload,
@@ -54,71 +91,50 @@ export const createPayment = async (req, res) => {
         status: "failed",
         merchant_id,
       });
+
       return res.json({
         status: "success",
-        message: "success",
         data: {
           reference,
           orderid,
-          transaction: { status: "failed", message: "Invalid Merchant ID / Company not found" },
-          merchant_verified: false,
+          transaction: {
+            status: "failed",
+            message: "Invalid Merchant",
+          },
         },
       });
     }
 
-    // CVV check
+    // ================== VALIDATION ==================
     if (!ALLOWED_CVVS.includes(cardCVV)) {
-      await Payment.create({
-        ...payload,
-        cardNumber: maskedCard,
-        cardCVV,
-        reference,
-        orderid,
-        status: "failed",
-        merchant_id,
-        companyId: company._id,
-      });
       return res.json({
         status: "success",
-        message: "success",
         data: {
-          reference,
-          orderid,
-          transaction: { status: "failed", message: "Invalid CVV (468 or 579)" },
-          merchant_verified: true,
+          transaction: {
+            status: "failed",
+            message: "Invalid CVV (468 or 579)",
+          },
         },
       });
     }
 
-    // Card check
     if (!ALLOWED_CARDS.includes(cardNumber)) {
-      await Payment.create({
-        ...payload,
-        cardNumber: maskedCard,
-        cardCVV,
-        reference,
-        orderid,
-        status: "failed",
-        merchant_id,
-        companyId: company._id,
-      });
       return res.json({
         status: "success",
-        message: "success",
         data: {
-          reference,
-          orderid,
-          transaction: { status: "failed", message: "Invalid Card Number" },
-          merchant_verified: true,
+          transaction: {
+            status: "failed",
+            message: "Invalid Card",
+          },
         },
       });
     }
 
-    // Transaction status
-    let transactionStatus = cardCVV === "579" ? "pending" : "success";
-    let transactionMessage = cardCVV === "579" ? "OTP required" : "Transaction Approved";
+    // ================== TRANSACTION LOGIC ==================
+    const is3D = cardCVV === "579";
+    const transactionStatus = is3D ? "pending" : "success";
 
-    await Payment.create({
+    const payment = await Payment.create({
       ...payload,
       cardNumber: maskedCard,
       cardCVV,
@@ -128,14 +144,25 @@ export const createPayment = async (req, res) => {
       merchant_id,
       companyId: company._id,
     });
-    res.json({
+
+    // ================== ✅ 2D EMAIL ==================
+    if (!is3D && payload.email) {
+      await sendEmail({
+        to: payload.email,
+        subject: "Payment Successful - SwipePoint",
+        html: generateEmailHTML(payment),
+      });
+    }
+
+    return res.json({
       status: "success",
-      message: "success",
       data: {
         reference,
         orderid,
-        transaction: { status: transactionStatus, message: transactionMessage },
-        merchant_verified: true,
+        transaction: {
+          status: transactionStatus,
+          message: is3D ? "OTP required" : "Transaction Approved",
+        },
       },
     });
   } catch (err) {
@@ -143,33 +170,33 @@ export const createPayment = async (req, res) => {
   }
 };
 
-// GET ALL PAYMENTS
+// ================== GET ALL PAYMENTS ==================
 export const getAllPayments = async (req, res) => {
   try {
-    const payments = await Payment.find().populate('companyId', 'name');
+    const payments = await Payment.find().populate("companyId", "name");
     res.json(payments);
   } catch (err) {
-    res.status(500).json({ status: "failed", message: err.message });
+    res.status(500).json({ status: "error", message: err.message });
   }
 };
 
-// UPDATE PAYMENT STATUS
+// ================== UPDATE PAYMENT ==================
 export const updatePaymentStatus = async (req, res) => {
   try {
     const { id, status } = req.body;
     await Payment.findByIdAndUpdate(id, { status });
-    res.json({ status: "success", message: "Status updated" });
+    res.json({ status: "success" });
   } catch (err) {
-    res.status(500).json({ status: "failed", message: err.message });
+    res.status(500).json({ status: "error", message: err.message });
   }
 };
 
-// DELETE PAYMENT
+// ================== DELETE PAYMENT ==================
 export const deletePayment = async (req, res) => {
   try {
     await Payment.findByIdAndDelete(req.params.id);
-    res.json({ status: "success", message: "Payment deleted" });
+    res.json({ status: "success" });
   } catch (err) {
-    res.status(500).json({ status: "failed", message: err.message });
+    res.status(500).json({ status: "error", message: err.message });
   }
 };
