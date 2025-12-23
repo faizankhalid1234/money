@@ -5,7 +5,12 @@ const paymentSchema = new mongoose.Schema(
     reference: String,
     orderid: String,
 
-    amount: Number,
+    // 💰 AMOUNTS
+    amount: { type: Number, required: true },      // user amount (2000)
+    fee: { type: Number, required: true },         // SwipePoint fee (200)
+    feePercentage: { type: Number, default: 10 },  // 🔥 NEW (10%)
+    netAmount: { type: Number, required: true },   // company gets (1800)
+
     currency: String,
 
     firstname: String,
@@ -33,6 +38,8 @@ const paymentSchema = new mongoose.Schema(
     webhook_url: String,
 
     status: String,
+
+    // 🔐 MERCHANT / COMPANY
     merchant_id: String,
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company" },
   },
