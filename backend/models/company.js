@@ -1,17 +1,15 @@
-import mongoose from "mongoose";
+import { DB_TYPE } from "../config/db.js";
+import CompanySQL from "./CompanySQL.js";
+import CompanyMongo from "./CompanyMongo.js";
 
-const companySchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    email: { type: String, required: true },
-    merchant_id: {
-      type: String,
-      required: true,
-    },
-  },
-  { timestamps: true }
-);
+let Company;
 
-companySchema.index({ merchant_id: 1 }, { unique: true, sparse: true });
+if (DB_TYPE === "sql") {
+    Company = CompanySQL;
+} else if (DB_TYPE === "mongo") {
+    Company = CompanyMongo;
+} else {
+    throw new Error("Invalid DB_TYPE in .env");
+}
 
-export default mongoose.model("Company", companySchema);
+export default Company;

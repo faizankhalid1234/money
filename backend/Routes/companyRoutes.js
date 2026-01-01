@@ -1,5 +1,5 @@
 import express from "express";
-import Company from "../models/Company.js";
+import Company from "../models/CompanyMongo.js";
 
 const router = express.Router();
 

@@ -18,8 +18,10 @@
     "express": "^5.2.1",
     "mongodb": "^7.0.0",
     "mongoose": "^7.8.8",
+    "mysql2": "^3.16.0",
     "node-fetch": "^3.3.2",
-    "nodemailer": "^7.0.11"
+    "nodemailer": "^7.0.11",
+    "sequelize": "^6.37.7"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
