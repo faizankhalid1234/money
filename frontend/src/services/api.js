@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // ✅ Tumhari company ka merchant_id
-export const MERCHANT_ID = "MID_1766488838273";
+export const MERCHANT_ID = "MID_1767429092196";
 
 const api = axios.create({
   baseURL: "http://localhost:5000/api",

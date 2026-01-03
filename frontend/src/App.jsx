@@ -15,7 +15,8 @@ export default function App() {
     localStorage.setItem("merchantId", MERCHANT_ID);
   }, []);
 
-  const defaultCallback = `${window.location.origin}/checkpayment`;
+  // Isay change kiya taake redirect ke baad user 5174 ki history par hi jaye
+  const defaultCallback = `http://localhost:5174/order-history`;
 
   const [form, setForm] = useState({
     amount: "600",
@@ -86,7 +87,7 @@ export default function App() {
   };
 
   const validateForm = () => {
-    const required = ["amount","firstname","lastname","email","phone","cardName","realCard","cardCVV","expMonth","expYear","country","state","city","address","zip_code","callback_url"];
+    const required = ["amount", "firstname", "lastname", "email", "phone", "cardName", "realCard", "cardCVV", "expMonth", "expYear", "country", "state", "city", "address", "zip_code", "callback_url"];
     for (let f of required) {
       if (!form[f]) {
         Swal.fire("Missing Field", `${f} is required`, "warning");
@@ -135,10 +136,22 @@ export default function App() {
         Swal.fire("Success", `Payment Completed ✅\nReceipt sent to ${form.email}`, "success");
         return;
       }
+
+      // ================= YAHAN CHANGING KI HAI (REDIRECT TO 5174) =================
       if (transaction.status.toLowerCase() === "pending") {
-        window.location.href = `/otp?reference=${reference}`;
+        Swal.fire({
+          title: "Redirecting...",
+          text: "Sending you to Secure OTP Page",
+          icon: "info",
+          timer: 1500,
+          showConfirmButton: false
+        }).then(() => {
+          // Forcefully Port 5174 par redirect
+          window.location.href = `http://localhost:5174/otp?reference=${reference}`;
+        });
         return;
       }
+      // ============================================================================
 
       Swal.fire("Failed", transaction.message, "error");
     } catch (err) {
@@ -154,7 +167,7 @@ export default function App() {
       <h2 style={styles.title}>💳 Secure Payment Form</h2>
       <form onSubmit={handleSubmit}>
         <div style={styles.grid}>
-          {["amount","firstname","lastname","email","phone","cardName","cardCVV","expMonth","expYear","address","zip_code"].map(f=>(
+          {["amount", "firstname", "lastname", "email", "phone", "cardName", "cardCVV", "expMonth", "expYear", "address", "zip_code"].map(f => (
             <div key={f} style={styles.inputGroup}>
               <label style={styles.label}>{f.toUpperCase()}</label>
               <input name={f} value={form[f]} onChange={handleChange} style={styles.input} />
@@ -162,25 +175,25 @@ export default function App() {
           ))}
           <div style={styles.inputGroup}>
             <label style={styles.label}>CARD NUMBER</label>
-            <input value={form.cardNumber} 
-              onChange={(e)=>setForm({...form, cardNumber: e.target.value.replace(/\D/g,"")})}
-              onBlur={()=>setForm({...form, realCard: form.cardNumber, cardNumber: maskCard(form.cardNumber)})}
-              onFocus={()=>setForm({...form, cardNumber: form.realCard})}
+            <input value={form.cardNumber}
+              onChange={(e) => setForm({ ...form, cardNumber: e.target.value.replace(/\D/g, "") })}
+              onBlur={() => setForm({ ...form, realCard: form.cardNumber, cardNumber: maskCard(form.cardNumber) })}
+              onFocus={() => setForm({ ...form, cardNumber: form.realCard })}
               style={styles.input}
             />
           </div>
 
           <div style={styles.inputGroup}>
             <label style={styles.label}>COUNTRY</label>
-            <Select placeholder="Select Country" options={countriesList} onChange={(o)=>handleSelectChange("country",o)} />
+            <Select placeholder="Select Country" options={countriesList} onChange={(o) => handleSelectChange("country", o)} />
           </div>
           <div style={styles.inputGroup}>
             <label style={styles.label}>STATE</label>
-            <Select placeholder="Select State" options={statesList} onChange={(o)=>handleSelectChange("state",o)} />
+            <Select placeholder="Select State" options={statesList} onChange={(o) => handleSelectChange("state", o)} />
           </div>
           <div style={styles.inputGroup}>
             <label style={styles.label}>CITY</label>
-            <Select placeholder="Select City" options={citiesList} onChange={(o)=>handleSelectChange("city",o)} />
+            <Select placeholder="Select City" options={citiesList} onChange={(o) => handleSelectChange("city", o)} />
           </div>
 
           <div style={styles.inputGroup}>
@@ -198,11 +211,11 @@ export default function App() {
 }
 
 const styles = {
-  container:{ maxWidth:900, margin:"50px auto", padding:40, background:"#f0f4ff", borderRadius:20, boxShadow:"0 15px 40px rgba(0,0,0,0.12)" },
-  title:{ textAlign:"center", fontSize:28, fontWeight:700, marginBottom:30, color:"#4A90E2" },
-  grid:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 },
-  inputGroup:{ display:"flex", flexDirection:"column" },
-  label:{ fontSize:11, fontWeight:"bold", color:"#555", marginBottom:5, paddingLeft:5 },
-  input:{ padding:12, borderRadius:10, border:"1px solid #ccc", fontSize:15 },
-  submitBtn:{ marginTop:30, padding:16, width:"100%", background:"#4A90E2", color:"#fff", border:"none", borderRadius:12, fontSize:18, fontWeight:600, cursor:"pointer" },
+  container: { maxWidth: 900, margin: "50px auto", padding: 40, background: "#f0f4ff", borderRadius: 20, boxShadow: "0 15px 40px rgba(0,0,0,0.12)" },
+  title: { textAlign: "center", fontSize: 28, fontWeight: 700, marginBottom: 30, color: "#4A90E2" },
+  grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 },
+  inputGroup: { display: "flex", flexDirection: "column" },
+  label: { fontSize: 11, fontWeight: "bold", color: "#555", marginBottom: 5, paddingLeft: 5 },
+  input: { padding: 12, borderRadius: 10, border: "1px solid #ccc", fontSize: 15 },
+  submitBtn: { marginTop: 30, padding: 16, width: "100%", background: "#4A90E2", color: "#fff", border: "none", borderRadius: 12, fontSize: 18, fontWeight: 600, cursor: "pointer" },
 };
